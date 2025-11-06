@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://libs.zappar.com/zappar-aframe/2.0.0/zappar-aframe.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.0/dist/aframe-extras.min.js"></script>
+
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+<a-scene>
+  <!-- Permissions & Compatibility UI -->
+  <a-entity zappar-permissions-ui></a-entity>
+  <a-entity zappar-compatibility-ui></a-entity>
+
+  <!-- Camera with raycaster -->
+  <a-camera zappar-camera>
+    <a-entity raycaster="objects: .clickable" cursor="rayOrigin: mouse"></a-entity>
+  </a-camera>
+
+  <!-- ==================== MARKER 1 ==================== -->
+  <a-entity zappar-image="target: ./assets/marker1.zpt">
+    <a-entity id="group1" visible="false">
+      <!-- Hotspot (opsional, untuk klik) -->
+      <a-plane class="clickable" width="1" height="1" position="0 0 -0.01" material="transparent: true; opacity: 0"></a-plane>
+
+      <!-- Model GLB 1 -->
+      <a-entity
+        gltf-model="./assets/model1.glb"
+        animation-mixer
+        scale="0.5 0.5 0.5"
+        position="0 0 0"
+        rotation="90 0 0">
+      </a-entity>
+    </a-entity>
+  </a-entity>
+
+  <!-- ==================== MARKER 2 ==================== -->
+  <a-entity zappar-image="target: ./assets/marker2.zpt">
+    <a-entity id="group2" visible="false">
+      <a-plane class="clickable" width="1" height="1" position="0 0 -0.01" material="transparent: true; opacity: 0"></a-plane>
+      <a-entity
+        gltf-model="./assets/model2.glb"
+        animation-mixer
+        scale="0.3 0.3 0.3"
+        position="0 0.5 0"
+        rotation="90 0 0">
+      </a-entity>
+    </a-entity>
+  </a-entity>
+
+  <!-- ==================== MARKER 3 ==================== -->
+  <a-entity zappar-image="target: ./assets/marker3.zpt">
+    <a-entity id="group3" visible="false">
+      <a-plane class="clickable" width="1" height="1" position="0 0 -0.01" material="transparent: true; opacity: 0"></a-plane>
+      <a-entity
+        gltf-model="./assets/model3.glb"
+        animation-mixer
+        scale="1 1 1"
+        position="0 0 0"
+        rotation="90 0 0">
+      </a-entity>
+    </a-entity>
+  </a-entity>
+
+  <!-- ==================== MARKER 4 ==================== -->
+  <a-entity zappar-image="target: ./assets/marker4.zpt">
+    <a-entity id="group4" visible="false">
+      <a-plane class="clickable" width="1" height="1" position="0 0 -0.01" material="transparent: true; opacity: 0"></a-plane>
+      <a-entity
+        gltf-model="./assets/model4.glb"
+        animation-mixer
+        scale="0.8 0.8 0.8"
+        position="0 0 0"
+        rotation="90 0 0">
+      </a-entity>
+    </a-entity>
+  </a-entity>
+
+</a-scene>
+
+<!-- ==================== SCRIPT: Munculkan saat terdeteksi ==================== -->
+<script>
+  AFRAME.registerComponent('show-on-track', {
+    init: function () {
+      const group = this.el;
+      const image = group.parentEl;
+
+      // Saat marker terlihat → munculkan grup
+      image.addEventListener('zappar-visible', () => {
+        group.setAttribute('visible', true);
+      });
+
+      // Saat marker hilang → sembunyikan
+      image.addEventListener('zappar-not-visible', () => {
+        group.setAttribute('visible', false);
+      });
+    }
+  });
+
+  // Terapkan ke semua grup
+  document.querySelectorAll('#group1, #group2, #group3, #group4').forEach(el => {
+    el.setAttribute('show-on-track', '');
+  });
+</script>
+
+</body>
+</html>
