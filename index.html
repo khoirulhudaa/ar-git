@@ -4,11 +4,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+  <!-- KOMPONEN ROTATE JARI (COPY-PASTE INI SAJA) -->
+  <script>
+    AFRAME.registerComponent('drag-rotate', {
+      init: function () {
+        let startX, startY, isDragging = false;
+        const el = this.el;
+
+        const start = (e) => {
+          if (e.touches && e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+          }
+        };
+
+        const move = (e) => {
+          if (!isDragging || !e.touches) return;
+          e.preventDefault();
+
+          const deltaX = e.touches[0].clientX - startX;
+          const deltaY = e.touches[0].clientY - startY;
+
+          const rot = el.getAttribute('rotation');
+          el.setAttribute('rotation', {
+            x: rot.x - deltaY * 0.5,
+            y: rot.y + deltaX * 0.5,
+            z: rot.z
+          });
+
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+        };
+
+        const end = () => { isDragging = false; };
+
+        el.addEventListener('touchstart', start);
+        el.addEventListener('touchmove', move, { passive: false });
+        el.addEventListener('touchend', end);
+      }
+    });
+  </script>
 </head>
 <body style="margin:0; overflow:hidden; touch-action: none;">
   <a-scene 
     embedded 
-    arjs="trackingMethod: best; sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    arjs="trackingMethod: best; sourceType: webcam;"
     renderer="logarithmicDepthBuffer: true;">
 
     <!-- MARKER -->
@@ -18,25 +60,22 @@
       url="./assets/profile.patt"
       registerevents>
 
-      <!-- Model 3D -->
+      <!-- MODEL + ROTATE JARI -->
       <a-entity 
         id="arModel"
         gltf-model="./assets/box-sample.glb" 
         scale="0.5 0.5 0.5"
         position="0 0.5 0"
         animation-mixer
-        rotation-control>
+        drag-rotate>   <!-- TAMBAHKAN INI SAJA! -->
       </a-entity>
     </a-marker>
 
-    <!-- Kamera -->
     <a-entity camera></a-entity>
-
   </a-scene>
 
-  <!-- SCRIPT: AR Permanent + Rotate Jari -->
+  <!-- AR PERMANENT -->
   <script>
-    // 1. AR Tetap Muncul Setelah Terdeteksi
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
@@ -55,50 +94,6 @@
           });
           marker.setAttribute('visible', false);
         });
-      }
-    });
-
-    // 2. Rotate dengan Jari (Touch & Drag)
-    AFRAME.registerComponent('rotation-control', {
-      init: function () {
-        const el = this.el;
-        let startX = 0;
-        let startY = 0;
-        let isDragging = false;
-
-        const onStart = (e) => {
-          if (e.touches.length === 1) {
-            isDragging = true;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-          }
-        };
-
-        const onMove = (e) => {
-          if (!isDragging || e.touches.length !== 1) return;
-          e.preventDefault();
-
-          const deltaX = e.touches[0].clientX - startX;
-          const deltaY = e.touches[0].clientY - startY;
-
-          const rotation = el.getAttribute('rotation');
-          el.setAttribute('rotation', {
-            x: rotation.x - deltaY * 0.5,
-            y: rotation.y + deltaX * 0.5,
-            z: rotation.z
-          });
-
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
-        };
-
-        const onEnd = () => {
-          isDragging = false;
-        };
-
-        el.addEventListener('touchstart', onStart);
-        el.addEventListener('touchmove', onMove, { passive: false });
-        el.addEventListener('touchend', onEnd);
       }
     });
   </script>
