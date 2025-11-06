@@ -5,15 +5,64 @@
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body style="margin:0; overflow:hidden;">
-  <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
+  <a-scene 
+    embedded 
+    arjs="trackingMethod: best; sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    renderer="logarithmicDepthBuffer: true;">
 
-    <!-- MARKER 3: Custom A -->
-    <a-marker type="pattern" url="./assets/profile.patt">
-      <a-entity gltf-model="./assets/box-sample.glb" animation-mixer></a-entity>
-    </a-marker> 
+    <!-- MARKER -->
+    <a-marker 
+      id="myMarker" 
+      type="pattern" 
+      url="./assets/profile.patt"
+      registerevents>
 
+      <!-- Model AR -->
+      <a-entity 
+        id="arModel"
+        gltf-model="./assets/box-sample.glb" 
+        scale="0.5 0.5 0.5"
+        animation-mixer>
+      </a-entity>
+    </a-marker>
+
+    <!-- Kamera -->
     <a-entity camera></a-entity>
+
   </a-scene>
+
+  <!-- SCRIPT: AR Permanent -->
+  <script>
+    AFRAME.registerComponent('registerevents', {
+      init: function () {
+        const marker = this.el;
+
+        // Saat marker TERDETEKSI
+        marker.addEventListener('markerFound', function () {
+          const model = document.querySelector('#arModel');
+          const scene = document.querySelector('a-scene');
+
+          // Simpan posisi & rotasi marker
+          const position = marker.object3D.position.clone();
+          const rotation = marker.object3D.rotation.clone();
+
+          // Pindahkan model ke scene (bukan anak marker)
+          scene.appendChild(model);
+
+          // Atur posisi & rotasi tetap
+          model.setAttribute('position', position);
+          model.setAttribute('rotation', {
+            x: THREE.MathUtils.radToDeg(rotation.x),
+            y: THREE.MathUtils.radToDeg(rotation.y),
+            z: THREE.MathUtils.radToDeg(rotation.z)
+          });
+
+          // Sembunyikan marker (tapi model tetap ada)
+          marker.setAttribute('visible', false);
+        });
+      }
+    });
+  </script>
 </body>
 </html>
 
