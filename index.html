@@ -1,82 +1,93 @@
-<!-- <!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html>
+<html>
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>COSMO 1417-02 AR</title>
+   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://libs.zappar.com/zappar-aframe/2.0.0/zappar-aframe.js"></script>
+
+  <!-- We need A-Frame Extras to run animations -->
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.0/dist/aframe-extras.min.js"></script>
+
+
+  <meta charset="utf-8" />
+  <title>Zappar for A-Frame: Play Animation From Gaze Example</title>
   <style>
-    *{margin:0;padding:0}
-    html,body{width:100%;height:100%;overflow:hidden;background:#000}
-    #unity-container{position:absolute;width:100%;height:100%}
-    canvas{display:block}
-    #loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-              color:#fff;text-align:center;font-family:Arial;z-index:100}
-    #progress{width:300px;height:20px;background:#333;border-radius:10px;margin:15px auto;overflow:hidden}
-    #fill{height:100%;width:0%;background:#00aaff;transition:width .2s}
-    .btn-fullscreen{position:absolute;top:15px;right:15px;background:rgba(0,0,0,.6);
-                    color:#fff;border:none;padding:10px 15px;border-radius:8px;font-size:14px;
-                    cursor:pointer;z-index:101}
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
   </style>
-</head>
-<body>
-  <div id="unity-container">
-    <canvas id="unity-canvas"></canvas>
-
-    <div id="loading">
-      <h3>Memuat AR...</h3>
-      <div id="progress"><div id="fill"></div></div>
-      <p>Arahkan kamera ke <strong>COSMO 1417-02 marker</strong></p>
-    </div>
-
-    <button class="btn-fullscreen" onclick="toggleFull()">Fullscreen</button>
-  </div>
 
   <script>
-    // NAMA FOLDER UTAMA BUILD
-    const buildUrl = "./WebGLBuild";
 
-    const config = {
-      dataUrl:          buildUrl + "/Build/3dfc59c974755dee151d250cb020d8bd.data.unityweb",
-      frameworkUrl:     buildUrl + "/Build/f52347dc2ab1959d1e759a6f582b4b30.js.unityweb",
-      codeUrl:          buildUrl + "/Build/73b6b973f99e58b13f9e27103060aa86.wasm.unityweb",
-      streamingAssetsUrl: "StreamingAssets",
-      companyName: "YourBrand",
-      productName: "COSMO 1417-02 AR",
-      productVersion: "1.0",
-    };
+        // Only show our content when the image becomes visible
+        AFRAME.registerComponent("visibility-changer", {
+            init: function () {
+                this.el.setAttribute("visible", false)
+                this.el.sceneEl.addEventListener('zappar-visible', () => this.el.setAttribute("visible", true));
+            }
+        })
 
-    const canvas   = document.querySelector("#unity-canvas");
-    const loading  = document.querySelector("#loading");
-    const fill     = document.querySelector("#fill");
-
-    const script = document.createElement("script");
-    script.src = buildUrl + "/Build/Build.loader.js";  // Path loader diperbaiki
-    script.onload = () => {
-      createUnityInstance(canvas, config, (progress) => {
-        fill.style.width = (progress * 100) + "%";
-      }).then((unityInstance) => {
-        loading.style.display = "none";
-        window.unity = unityInstance;
-      }).catch((err) => {
-        alert("Gagal memuat AR: " + err);
-        console.error(err);
-      });
-    };
-    document.body.appendChild(script);
-
-    function toggleFull() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else {
-        document.exitFullscreen();
-      }
-    }
+        // Register a component that will register an event listener for when our raycaster detects an object
+        AFRAME.registerComponent('collider-check', {
+            dependencies: ['raycaster'],
+            init: function () {
+                this.el.addEventListener('raycaster-intersection', function () {
+                    // When the object is detected, play the animation
+                    const model = document.getElementById('model');
+                    model.setAttribute("animation-mixer", "clip:null")
+                    model.setAttribute("animation-mixer", "clip: Armature|mixamo.com|Layer0; repetitions : 1");
+                });
+            }
+        });
   </script>
+</head>
+
+<body>
+
+  <body>
+    <a-scene>
+        <!-- Ask user for camera permissions, display some text if permission is denied -->
+        <a-entity zappar-permissions-ui id="permissions"></a-entity>
+        <!-- shows a full-page dialog that informs the user they're using an unsupported browser -->
+        <a-entity zappar-compatibility-ui id="compatibility"></a-entity>
+
+      <a-camera zappar-camera>
+        <!-- Inside our camera, include a raycaster that looks down the center of the camera -->
+        <!-- Use our 'collider-check' component to register the event handler -->
+        <a-entity collider-check raycaster="objects: .collidable"></a-entity>
+      </a-camera>
+
+      <!-- <a-entity zappar-image="target: ./assets/example-tracking-image.zpt"> -->
+      <!-- <a-entity zappar-image="target: ./assets/COSMO 1417-02 marker.zpt"> -->
+      <a-entity zappar-image="target: ./assets/cosmo.xml">
+
+        <!-- Have a group that will only become visible when the target image comes into view-->
+        <a-entity visibility-changer>
+
+          <!-- Have a hotspot plane that can be detected by the raycaster -->
+          <a-plane class="collidable" color="#000000" material="transparent: true; opacity: 0.8;" width="1" height="1" position="0 0 -0.01 "></a-plane>
+
+          <!-- Include our 3D model-->
+          <a-entity rotation="90 0 0" id="model" gltf-model="./assets/waving.glb" animation-mixer="clip: null"></a-entity>
+
+        </a-entity>
+
+      </a-entity>
+
+
+    </a-scene>
+  </body>
+
 </body>
-</html> -->
+
+</html>
 
 
-
+<!-- 
 <!DOCTYPE html>
 <html lang="en-us">
 
@@ -287,4 +298,4 @@
     </script>
 </body>
 
-</html>
+</html> -->
