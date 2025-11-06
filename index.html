@@ -1,32 +1,27 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>COSMO 1417-02 AR</title>
   <style>
-    * { margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-    #unity-container { position: absolute; width: 100%; height: 100%; }
-    canvas { display: block; }
-    #loading {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      color: white; text-align: center; font-family: Arial; z-index: 100;
-    }
-    #progress { width: 300px; height: 20px; background: #333; border-radius: 10px; margin: 15px auto; overflow: hidden; }
-    #fill { height: 100%; width: 0%; background: #00aaff; transition: width 0.2s; }
-    .btn-fullscreen {
-      position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6);
-      color: white; border: none; padding: 10px 15px; border-radius: 8px; font-size: 14px;
-      cursor: pointer; z-index: 101;
-    }
+    *{margin:0;padding:0}
+    html,body{width:100%;height:100%;overflow:hidden;background:#000}
+    #unity-container{position:absolute;width:100%;height:100%}
+    canvas{display:block}
+    #loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+              color:#fff;text-align:center;font-family:Arial;z-index:100}
+    #progress{width:300px;height:20px;background:#333;border-radius:10px;margin:15px auto;overflow:hidden}
+    #fill{height:100%;width:0%;background:#00aaff;transition:width .2s}
+    .btn-fullscreen{position:absolute;top:15px;right:15px;background:rgba(0,0,0,.6);
+                    color:#fff;border:none;padding:10px 15px;border-radius:8px;font-size:14px;
+                    cursor:pointer;z-index:101}
   </style>
 </head>
 <body>
-
   <div id="unity-container">
     <canvas id="unity-canvas"></canvas>
-    
+
     <div id="loading">
       <h3>Memuat AR...</h3>
       <div id="progress"><div id="fill"></div></div>
@@ -37,26 +32,25 @@
   </div>
 
   <script>
-    // Ganti dengan nama folder build kamu
-    const buildUrl = "./WebGLBuild/Build";
-    
+    // NAMA FOLDER UTAMA BUILD
+    const buildUrl = "WebGLBuild";
+
     const config = {
-      dataUrl: buildUrl + "/3dfc59c974755dee151d250cb020d8bd.data.unityweb",
-      frameworkUrl: buildUrl + "/f52347dc2ab1959d1e759a6f582b4b30.js.unityweb",
-      codeUrl: buildUrl + "/73b6b973f99e58b13f9e27103060aa86.wasm.unityweb",
+      dataUrl:          buildUrl + "/Build/3dfc59c974755dee151d250cb020d8bd.data.unityweb",
+      frameworkUrl:     buildUrl + "/Build/f52347dc2ab1959d1e759a6f582b4b30.js.unityweb",
+      codeUrl:          buildUrl + "/Build/73b6b973f99e58b13f9e27103060aa86.wasm.unityweb",
       streamingAssetsUrl: "StreamingAssets",
       companyName: "YourBrand",
       productName: "COSMO 1417-02 AR",
       productVersion: "1.0",
     };
 
-    const container = document.querySelector("#unity-container");
-    const canvas = document.querySelector("#unity-canvas");
-    const loading = document.querySelector("#loading");
-    const fill = document.querySelector("#fill");
+    const canvas   = document.querySelector("#unity-canvas");
+    const loading  = document.querySelector("#loading");
+    const fill     = document.querySelector("#fill");
 
     const script = document.createElement("script");
-    script.src = buildUrl + "/Build.loader.js";
+    script.src = buildUrl + "/Build/Build.loader.js";  // Path loader diperbaiki
     script.onload = () => {
       createUnityInstance(canvas, config, (progress) => {
         fill.style.width = (progress * 100) + "%";
@@ -65,6 +59,7 @@
         window.unity = unityInstance;
       }).catch((err) => {
         alert("Gagal memuat AR: " + err);
+        console.error(err);
       });
     };
     document.body.appendChild(script);
@@ -77,6 +72,5 @@
       }
     }
   </script>
-
 </body>
 </html>
