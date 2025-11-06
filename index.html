@@ -1,102 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
-  <!-- KOMPONEN ROTATE JARI (COPY-PASTE INI SAJA) -->
-  <script>
-    AFRAME.registerComponent('drag-rotate', {
-      init: function () {
-        let startX, startY, isDragging = false;
-        const el = this.el;
-
-        const start = (e) => {
-          if (e.touches && e.touches.length === 1) {
-            isDragging = true;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-          }
-        };
-
-        const move = (e) => {
-          if (!isDragging || !e.touches) return;
-          e.preventDefault();
-
-          const deltaX = e.touches[0].clientX - startX;
-          const deltaY = e.touches[0].clientY - startY;
-
-          const rot = el.getAttribute('rotation');
-          el.setAttribute('rotation', {
-            x: rot.x - deltaY * 0.5,
-            y: rot.y + deltaX * 0.5,
-            z: rot.z
-          });
-
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
-        };
-
-        const end = () => { isDragging = false; };
-
-        el.addEventListener('touchstart', start);
-        el.addEventListener('touchmove', move, { passive: false });
-        el.addEventListener('touchend', end);
-      }
-    });
-  </script>
 </head>
-<body style="margin:0; overflow:hidden; touch-action: none;">
-  <a-scene 
-    embedded 
-    arjs="trackingMethod: best; sourceType: webcam;"
-    renderer="logarithmicDepthBuffer: true;">
+<body style="margin:0; overflow:hidden;">
+  <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
 
-    <!-- MARKER -->
-    <a-marker 
-      id="myMarker" 
-      type="pattern" 
-      url="./assets/profile.patt"
-      registerevents>
-
-      <!-- MODEL + ROTATE JARI -->
-      <a-entity 
-        id="arModel"
-        gltf-model="./assets/box-sample.glb" 
-        scale="0.5 0.5 0.5"
-        position="0 0.5 0"
-        animation-mixer
-        drag-rotate>   <!-- TAMBAHKAN INI SAJA! -->
-      </a-entity>
-    </a-marker>
+    <!-- MARKER 3: Custom A -->
+    <a-marker type="pattern" url="./assets/profile.patt">
+      <a-entity
+        gltf-model="./assets/box-sample.glb"
+        rotate-on-drag
+        scale="1 1 1"
+        position="0 0 0"
+        ></a-entity>
+    </a-marker> 
 
     <a-entity camera></a-entity>
   </a-scene>
 
-  <!-- AR PERMANENT -->
   <script>
-    AFRAME.registerComponent('registerevents', {
-      init: function () {
-        const marker = this.el;
-        marker.addEventListener('markerFound', () => {
-          const model = document.querySelector('#arModel');
-          const scene = document.querySelector('a-scene');
-          const pos = marker.object3D.position.clone();
-          const rot = marker.object3D.rotation.clone();
+    AFRAME.registerComponent('rotate-on-drag', {
+        schema: { speed: { default: 1 } },
+        init: function () {
+        this.isDragging = false;
+        this.previousX = 0;
 
-          scene.appendChild(model);
-          model.setAttribute('position', pos);
-          model.setAttribute('rotation', {
-            x: THREE.MathUtils.radToDeg(rot.x),
-            y: THREE.MathUtils.radToDeg(rot.y),
-            z: THREE.MathUtils.radToDeg(rot.z)
-          });
-          marker.setAttribute('visible', false);
+        this.el.sceneEl.canvas.addEventListener('mousedown', e => {
+            this.isDragging = true;
+            this.previousX = e.clientX;
         });
-      }
+
+        window.addEventListener('mouseup', () => (this.isDragging = false));
+
+        window.addEventListener('mousemove', e => {
+            if (!this.isDragging) return;
+            const deltaX = e.clientX - this.previousX;
+            this.previousX = e.clientX;
+            const rotation = this.el.getAttribute('rotation');
+            rotation.y += deltaX * 0.5 * this.data.speed;
+            this.el.setAttribute('rotation', rotation);
+        });
+        }
     });
-  </script>
+    </script>
+
 </body>
 </html>
 
