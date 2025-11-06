@@ -17,12 +17,13 @@
       url="./assets/profile.patt"
       registerevents>
 
-      <!-- Model AR -->
+      <!-- Model 3D -->
       <a-entity 
         id="arModel"
         gltf-model="./assets/box-sample.glb" 
         scale="0.5 0.5 0.5"
-        animation-mixer>
+        animation-mixer
+        rotation-control>
       </a-entity>
     </a-marker>
 
@@ -31,34 +32,52 @@
 
   </a-scene>
 
-  <!-- SCRIPT: AR Permanent -->
+  <!-- SCRIPT: AR Permanent + Rotate dengan Jari -->
   <script>
+    // 1. AR Permanent (model tetap ada)
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
-
-        // Saat marker TERDETEKSI
-        marker.addEventListener('markerFound', function () {
+        marker.addEventListener('markerFound', () => {
           const model = document.querySelector('#arModel');
           const scene = document.querySelector('a-scene');
+          const pos = marker.object3D.position.clone();
+          const rot = marker.object3D.rotation.clone();
 
-          // Simpan posisi & rotasi marker
-          const position = marker.object3D.position.clone();
-          const rotation = marker.object3D.rotation.clone();
-
-          // Pindahkan model ke scene (bukan anak marker)
           scene.appendChild(model);
-
-          // Atur posisi & rotasi tetap
-          model.setAttribute('position', position);
+          model.setAttribute('position', pos);
           model.setAttribute('rotation', {
-            x: THREE.MathUtils.radToDeg(rotation.x),
-            y: THREE.MathUtils.radToDeg(rotation.y),
-            z: THREE.MathUtils.radToDeg(rotation.z)
+            x: THREE.MathUtils.radToDeg(rot.x),
+            y: THREE.MathUtils.radToDeg(rot.y),
+            z: THREE.MathUtils.radToDeg(rot.z)
           });
-
-          // Sembunyikan marker (tapi model tetap ada)
           marker.setAttribute('visible', false);
+        });
+      }
+    });
+
+    // 2. Rotate dengan Jari (Touch & Drag)
+    AFRAME.registerComponent('rotation-control', {
+      init: function () {
+        const el = this.el;
+        let startY = 0;
+
+        el.addEventListener('touchstart', (e) => {
+          startY = e.touches[0].clientY;
+          el.setAttribute('animation', 'property: rotation; to: ' + el.getAttribute('rotation').x + ' ' + (el.getAttribute('rotation').y + 180) + ' ' + el.getAttribute('rotation').z + '; dur: 0');
+        });
+
+        el.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          const currentY = e.touches[0].clientY;
+          const deltaY = currentY - startY;
+          const rotation = el.getAttribute('rotation');
+          el.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + deltaY * 0.5,
+            z: rotation.z
+          });
+          startY = currentY;
         });
       }
     });
