@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
-<body style="margin:0; overflow:hidden;">
+<body style="margin:0; overflow:hidden; touch-action: none;">
   <a-scene 
     embedded 
     arjs="trackingMethod: best; sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
@@ -22,6 +23,7 @@
         id="arModel"
         gltf-model="./assets/box-sample.glb" 
         scale="0.5 0.5 0.5"
+        position="0 0.5 0"
         animation-mixer
         rotation-control>
       </a-entity>
@@ -32,9 +34,9 @@
 
   </a-scene>
 
-  <!-- SCRIPT: AR Permanent + Rotate dengan Jari -->
+  <!-- SCRIPT: AR Permanent + Rotate Jari -->
   <script>
-    // 1. AR Permanent (model tetap ada)
+    // 1. AR Tetap Muncul Setelah Terdeteksi
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
@@ -60,25 +62,43 @@
     AFRAME.registerComponent('rotation-control', {
       init: function () {
         const el = this.el;
+        let startX = 0;
         let startY = 0;
+        let isDragging = false;
 
-        el.addEventListener('touchstart', (e) => {
-          startY = e.touches[0].clientY;
-          el.setAttribute('animation', 'property: rotation; to: ' + el.getAttribute('rotation').x + ' ' + (el.getAttribute('rotation').y + 180) + ' ' + el.getAttribute('rotation').z + '; dur: 0');
-        });
+        const onStart = (e) => {
+          if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+          }
+        };
 
-        el.addEventListener('touchmove', (e) => {
+        const onMove = (e) => {
+          if (!isDragging || e.touches.length !== 1) return;
           e.preventDefault();
-          const currentY = e.touches[0].clientY;
-          const deltaY = currentY - startY;
+
+          const deltaX = e.touches[0].clientX - startX;
+          const deltaY = e.touches[0].clientY - startY;
+
           const rotation = el.getAttribute('rotation');
           el.setAttribute('rotation', {
-            x: rotation.x,
-            y: rotation.y + deltaY * 0.5,
+            x: rotation.x - deltaY * 0.5,
+            y: rotation.y + deltaX * 0.5,
             z: rotation.z
           });
-          startY = currentY;
-        });
+
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+        };
+
+        const onEnd = () => {
+          isDragging = false;
+        };
+
+        el.addEventListener('touchstart', onStart);
+        el.addEventListener('touchmove', onMove, { passive: false });
+        el.addEventListener('touchend', onEnd);
       }
     });
   </script>
