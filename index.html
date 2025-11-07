@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube (Poster + Play Button Jelas)</title>
+  <title>AR + YouTube (Posisi Benar)</title>
   
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -29,10 +29,10 @@
         rotation-control>
       </a-entity>
 
-      <!-- LAYAR VIDEO (Poster + Tombol Play) -->
-      <a-entity id="videoContainer" position="0 1.5 0">
+      <!-- CONTAINER VIDEO (semua di dalam sini, posisi terkunci) -->
+      <a-entity id="videoContainer" position="0 1.0 0" rotation="0 0 0">
 
-        <!-- Plane utama (untuk iframe nanti) -->
+        <!-- Plane utama (untuk iframe) -->
         <a-plane
           id="videoPlane"
           width="2.4"
@@ -42,40 +42,36 @@
           youtube-player>
         </a-plane>
 
-        <!-- POSTER YouTube (muncul dulu) -->
-        <a-plane
+        <!-- POSTER YouTube -->
+        <a-image
           id="videoPoster"
-          src="https://img.youtube.com/vi/0YbJySC88OI/maxresdefault.jpg"
+          src="https://img.youtube.com/vi/0YbJySC88OI/hqdefault.jpg"
           width="2.4"
           height="1.35"
           position="0 0 0.01"
           material="shader: flat">
-        </a-plane>
+        </a-image>
 
-        <!-- TOMBOL PLAY (besar & jelas) -->
+        <!-- TOMBOL PLAY (besar & di tengah) -->
         <a-entity id="playButton" position="0 0 0.02">
-          <a-cylinder 
-            radius="0.25" 
-            height="0.02" 
-            color="white" 
-            opacity="0.9">
-          </a-cylinder>
+          <a-cylinder radius="0.28" height="0.03" color="white" opacity="0.95"></a-cylinder>
           <a-triangle 
-            position="0.08 0 0.01" 
-            scale="0.2 0.25 1" 
+            position="0.09 0 0.015" 
+            scale="0.22 0.28 1" 
             rotation="0 0 90" 
             color="#FF0000">
           </a-triangle>
         </a-entity>
 
-        <!-- Teks petunjuk -->
+        <!-- Teks Petunjuk (di bawah video) -->
         <a-text
-          value="TAP UNTUK PLAY"
+          value="TAP UNTUK PLAY VIDEO"
           color="white"
           align="center"
-          width="4"
+          width="5"
           position="0 -0.85 0.02"
-          font="mozillavr">
+          font="mozillavr"
+          side="double">
         </a-text>
 
       </a-entity>
@@ -97,9 +93,9 @@
 
   <!-- SCRIPT -->
   <script>
-    const YOUTUBE_ID = '0YbJySC88OI'; // Ganti jika perlu
+    const YOUTUBE_ID = '0YbJySC88OI';
 
-    // 1. Pindahkan semua ke scene saat marker ditemukan
+    // 1. Pindahkan model + container ke scene
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
@@ -119,9 +115,13 @@
             z: THREE.MathUtils.radToDeg(rot.z)
           });
 
-          // Pindahkan seluruh container video
+          // Pindahkan container video
           scene.appendChild(container);
-          container.setAttribute('position', { x: pos.x, y: pos.y + 1.5, z: pos.z });
+          container.setAttribute('position', { 
+            x: pos.x, 
+            y: pos.y + 1.0,  // Tinggi dari tanah
+            z: pos.z 
+          });
           container.setAttribute('rotation', {
             x: THREE.MathUtils.radToDeg(rot.x),
             y: THREE.MathUtils.radToDeg(rot.y),
@@ -166,34 +166,31 @@
       }
     });
 
-    // 3. YouTube Player (iframe)
+    // 3. YouTube Player
     AFRAME.registerComponent('youtube-player', {
       init: function () {
         const plane = this.el;
-        let played = false;
+        let loaded = false;
 
         plane.addEventListener('click', () => {
-          if (played) return;
-          played = true;
+          if (loaded) return;
+          loaded = true;
 
           const iframe = document.createElement('iframe');
-          iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&modestbranding=1&rel=0`;
+          iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&rel=0&modestbranding=1`;
           iframe.allow = 'autoplay; encrypted-media';
           iframe.allowFullscreen = true;
-          iframe.style.width = '100%';
-          iframe.style.height = '100%';
-          iframe.style.border = 'none';
+          iframe.style = 'width:100%; height:100%; border:none;';
 
-          // Ganti plane jadi HTML
           plane.setAttribute('material', 'src', iframe);
           plane.setAttribute('material', 'shader', 'html');
 
-          // Hapus poster & tombol
+          // Hapus elemen visual
           setTimeout(() => {
             document.querySelector('#videoPoster')?.remove();
             document.querySelector('#playButton')?.remove();
             document.querySelector('a-text')?.remove();
-          }, 300);
+          }, 400);
         });
       }
     });
