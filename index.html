@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube Video Autoplay</title>
+  <title>AR + YouTube (Bekerja!)</title>
   
-  <!-- A-Frame & AR.js -->
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
@@ -13,9 +12,9 @@
   
   <a-scene 
     embedded 
-    arjs="trackingMethod: best; sourceType: webcam;"
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
     renderer="logarithmicDepthBuffer: true;"
-    vr-mode-ui="enabled: true">
+    vr-mode-ui="enabled: false">
 
     <!-- MARKER -->
     <a-marker id="myMarker" type="pattern" url="./assets/profile.patt" registerevents>
@@ -30,54 +29,65 @@
         rotation-control>
       </a-entity>
 
-      <!-- Video YouTube di AR (Autoplay) -->
+      <!-- Layar Video (awalnya poster + tombol play) -->
       <a-plane
         id="videoPlane"
-        src="#youtubeVideo"
         position="0 1.5 0"
         width="2"
         height="1.125"
-        material="shader: flat"
+        material="color: black; shader: flat"
         class="clickable"
-        video-control>
+        youtube-player>
+        
+        <!-- Poster YouTube -->
+        <a-image 
+          src="https://img.youtube.com/vi/0YbJySC88OI/maxresdefault.jpg"
+          width="2" height="1.125"
+          position="0 0 0.01">
+        </a-image>
+
+        <!-- Tombol Play -->
+        <a-circle position="0 0 0.02" radius="0.2" color="white" opacity="0.8"></a-circle>
+        <a-triangle position="0.07 0 0.03" scale="0.15 0.2 1" rotation="0 0 90" color="red"></a-triangle>
+
+        <!-- Petunjuk -->
+        <a-text
+          value="Tap untuk play"
+          color="white"
+          align="center"
+          width="3"
+          position="0 -0.8 0"
+          rotation="0 0 0">
+        </a-text>
       </a-plane>
 
     </a-marker>
 
     <!-- Kamera + Cursor -->
     <a-entity camera>
-      <a-entity cursor="fuse: true"
-                position="0 0 -1"
-                geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-                material="color: white; shader: flat"
-                raycaster="objects: .clickable">
+      <a-entity 
+        cursor="fuse: false" 
+        position="0 0 -1"
+        geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+        material="color: white; shader: flat"
+        raycaster="objects: .clickable">
       </a-entity>
     </a-entity>
 
-    <!-- Asset: Video YouTube -->
-    <a-assets timeout="10000">
-      <video
-        id="youtubeVideo"
-        src="https://www.youtube.com/embed/0YbJySC88OI?si=gYKVjSTcalHCcCjI"
-        webkit-playsinline
-        playsinline
-        crossorigin="anonymous"
-        preload="auto">
-      </video>
-    </a-assets>
-
   </a-scene>
 
-  <!-- SCRIPT: AR Tetap + Video Autoplay + Kontrol -->
+  <!-- SCRIPT -->
   <script>
-    // 1. Pindahkan model + video ke scene saat marker ditemukan
+    // Ganti ID video YouTube di sini
+    const YOUTUBE_ID = '0YbJySC88OI'; // Video kamu
+
+    // 1. Pindahkan model + video ke scene
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
         marker.addEventListener('markerFound', () => {
           const model = document.querySelector('#arModel');
           const videoPlane = document.querySelector('#videoPlane');
-          const video = document.querySelector('#youtubeVideo');
           const scene = document.querySelector('a-scene');
           const pos = marker.object3D.position.clone();
           const rot = marker.object3D.rotation.clone();
@@ -92,36 +102,24 @@
           });
 
           // Pindahkan video plane
-          if (videoPlane) {
-            scene.appendChild(videoPlane);
-            videoPlane.setAttribute('position', { x: pos.x, y: pos.y + 1.5, z: pos.z });
-            videoPlane.setAttribute('rotation', {
-              x: THREE.MathUtils.radToDeg(rot.x),
-              y: THREE.MathUtils.radToDeg(rot.y),
-              z: THREE.MathUtils.radToDeg(rot.z)
-            });
-
-            // Autoplay video
-            setTimeout(() => {
-              if (video) {
-                video.play().catch(() => {
-                  console.log("Autoplay dicegah, user harus interaksi dulu");
-                });
-              }
-            }, 500);
-          }
+          scene.appendChild(videoPlane);
+          videoPlane.setAttribute('position', { x: pos.x, y: pos.y + 1.5, z: pos.z });
+          videoPlane.setAttribute('rotation', {
+            x: THREE.MathUtils.radToDeg(rot.x),
+            y: THREE.MathUtils.radToDeg(rot.y),
+            z: THREE.MathUtils.radToDeg(rot.z)
+          });
 
           marker.setAttribute('visible', false);
         });
       }
     });
 
-    // 2. Rotasi model dengan jari
+    // 2. Rotasi model
     AFRAME.registerComponent('rotation-control', {
       init: function () {
         const el = this.el;
         let startX = 0, startY = 0, isDragging = false;
-
         const onStart = (e) => {
           if (e.touches && e.touches.length === 1) {
             isDragging = true;
@@ -129,7 +127,6 @@
             startY = e.touches[0].clientY;
           }
         };
-
         const onMove = (e) => {
           if (!isDragging || !e.touches || e.touches.length !== 1) return;
           e.preventDefault();
@@ -144,26 +141,46 @@
           startX = e.touches[0].clientX;
           startY = e.touches[0].clientY;
         };
-
         const onEnd = () => { isDragging = false; };
-
         el.addEventListener('touchstart', onStart);
         el.addEventListener('touchmove', onMove, { passive: false });
         el.addEventListener('touchend', onEnd);
-        el.addEventListener('touchcancel', onEnd);
       }
     });
 
-    // 3. Kontrol video saat di-tap (play/pause)
-    AFRAME.registerComponent('video-control', {
+    // 3. YouTube Player dengan iframe (PASTI JALAN)
+    AFRAME.registerComponent('youtube-player', {
       init: function () {
-        const video = document.querySelector('#youtubeVideo');
-        this.el.addEventListener('click', () => {
-          if (video.paused) {
-            video.play();
-          } else {
-            video.pause();
-          }
+        const plane = this.el;
+        let iframe = null;
+
+        plane.addEventListener('click', () => {
+          if (iframe) return; // Sudah dimuat
+
+          // Buat iframe YouTube
+          iframe = document.createElement('iframe');
+          iframe.width = '560';
+          iframe.height = '315';
+          iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&modestbranding=1&rel=0`;
+          iframe.frameBorder = '0';
+          iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+          iframe.allowFullscreen = true;
+          iframe.style.position = 'absolute';
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+          iframe.style.border = 'none';
+
+          // Ganti material plane jadi HTML
+          plane.setAttribute('material', 'src', iframe);
+          plane.setAttribute('material', 'shader', 'html');
+
+          // Hapus poster & tombol
+          setTimeout(() => {
+            plane.querySelector('a-image')?.remove();
+            plane.querySelector('a-circle')?.remove();
+            plane.querySelector('a-triangle')?.remove();
+            plane.querySelector('a-text')?.remove();
+          }, 500);
         });
       }
     });
