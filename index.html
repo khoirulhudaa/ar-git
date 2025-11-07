@@ -3,17 +3,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube (TOMBOL PASTI DIKLIK)</title>
+  <title>AR + YouTube (Teks: PLAY VIDEO)</title>
   
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
+    
+    /* VIDEO DI DEPAN CANVAS */
+    #youtubeContainer {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80vw; height: 45vw;
+      max-width: 800px; max-height: 450px;
+      z-index: 1000;
+      display: none;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    #youtubeContainer iframe {
+      width: 100%; height: 100%; border: none;
+    }
   </style>
 </head>
 <body>
 
+  <!-- VIDEO DI DEPAN -->
+  <div id="youtubeContainer">
+    <iframe id="youtubeIframe" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+
+  <!-- A-SCENE -->
   <a-scene
     embedded
     arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
@@ -34,35 +57,45 @@
         rotation-control>
       </a-entity>
 
-      <!-- TOMBOL PLAY (PASTI KLIK) -->
+      <!-- TOMBOL PLAY DENGAN TEKS "PLAY VIDEO" -->
       <a-entity id="playButton" position="0 0.5 0.8">
-        <!-- Area klik (tipis, pasti kena) -->
-        <a-entity
-          geometry="primitive: box; depth: 0.05; width: 1.2; height: 1.2"
+        <!-- AREA KLIK -->
+        <a-box
+          depth="0.05"
+          width="1.4"
+          height="1.4"
           material="opacity: 0; transparent: true"
           class="clickable"
           youtube-player>
-        </a-entity>
+        </a-box>
 
-        <!-- Visual tombol -->
-        <a-cylinder radius="0.22" height="0.04" color="white" position="0 0 0.03"></a-cylinder>
-        <a-triangle position="0.07 0 0.04" scale="0.18 0.22 1" rotation="0 0 90" color="#FF0000"></a-triangle>
-        <a-text value="PLAY" color="white" align="center" width="3" position="0 -0.35 0.04" font="mozillavr"></a-text>
+        <!-- BACKGROUND TOMBOL -->
+        <a-cylinder radius="0.28" height="0.05" color="#FF0000" position="0 0 0.03"></a-cylinder>
+
+        <!-- ICON PLAY -->
+        <a-triangle 
+          position="0.08 0 0.04" 
+          scale="0.22 0.26 1" 
+          rotation="0 0 90" 
+          color="white">
+        </a-triangle>
+
+        <!-- TEKS "PLAY VIDEO" -->
+        <a-text
+          value="PLAY VIDEO"
+          color="white"
+          align="center"
+          width="4"
+          position="0 -0.42 0.04"
+          font="https://cdn.aframe.io/fonts/mozillavr.fnt"
+          negate="false">
+        </a-text>
+
       </a-entity>
-
-      <!-- VIDEO (lebar, depan) -->
-      <a-plane
-        id="videoPlane"
-        width="2.4"
-        height="1.35"
-        position="0 0.5 0.8"
-        material="color: #000"
-        visible="false">
-      </a-plane>
 
     </a-marker>
 
-    <!-- KAMERA + CURSOR (WAJIB) -->
+    <!-- KAMERA + CURSOR -->
     <a-entity camera>
       <a-entity
         cursor
@@ -79,7 +112,7 @@
   <script>
     const YOUTUBE_ID = '0YbJySC88OI';
 
-    // PINDAHKAN SEMUA KE SCENE
+    // PINDAHKAN MODEL + TOMBOL
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
@@ -90,10 +123,10 @@
           const pos = marker.object3D.position.clone();
           const rot = marker.object3D.rotation.clone();
 
-          ['#arModel', '#playButton', '#videoPlane'].forEach(selector => {
-            const el = document.querySelector(selector);
+          ['#arModel', '#playButton'].forEach(sel => {
+            const el = document.querySelector(sel);
             scene.appendChild(el);
-            el.setAttribute('position', { x: pos.x, y: pos.y + 0.5, z: pos.z + (selector === '#videoPlane' ? 0.8 : 0.8) });
+            el.setAttribute('position', { x: pos.x, y: pos.y + 0.5, z: pos.z + 0.8 });
             el.setAttribute('rotation', {
               x: THREE.MathUtils.radToDeg(rot.x),
               y: THREE.MathUtils.radToDeg(rot.y) + 90,
@@ -106,34 +139,25 @@
       }
     });
 
-    // TOMBOL PLAY (PASTI KLIK!)
+    // TOMBOL PLAY → VIDEO MUNCUL
     AFRAME.registerComponent('youtube-player', {
       init: function () {
         const el = this.el;
 
-        // PAKAI MOUSEDOWN + TOUCHSTART → PASTI TERDETEKSI
         const playVideo = () => {
-          console.log('%c[TOMBOL] DIKLIK! Memuat video...', 'color: lime; font-weight: bold;');
+          console.log('%c[TOMBOL] PLAY VIDEO DIKLIK!', 'color: lime; font-weight: bold;');
 
-          const videoPlane = document.querySelector('#videoPlane');
-          const iframe = document.createElement('iframe');
+          const container = document.getElementById('youtubeContainer');
+          const iframe = document.getElementById('youtubeIframe');
           
           iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&modestbranding=1&rel=0`;
-          iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
-          iframe.allowFullscreen = true;
-          iframe.style = 'width:100%; height:100%; border:none;';
+          container.style.display = 'block';
 
-          videoPlane.setAttribute('material', 'src', iframe);
-          videoPlane.setAttribute('material', 'shader', 'html');
-          videoPlane.setAttribute('visible', 'true');
-
-          // Hapus tombol
           document.querySelector('#playButton').remove();
 
-          console.log('%c[VIDEO] Berhasil dimuat di AR!', 'color: cyan; font-weight: bold;');
+          console.log('%c[VIDEO] Berhasil dimuat!', 'color: cyan; font-weight: bold;');
         };
 
-        // EVENT: MOUSE + TOUCH
         el.addEventListener('mousedown', playVideo);
         el.addEventListener('touchstart', (e) => {
           e.preventDefault();
