@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube (Tombol di Belakang Model)</title>
+  <title>AR + YouTube (Tombol BISA DIKLIK)</title>
   
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -29,41 +29,42 @@
         rotation-control>
       </a-entity>
 
-      <!-- TOMBOL PLAY (tepat di belakang model, di dalam AR) -->
+      <!-- TOMBOL PLAY (di belakang model) -->
       <a-entity id="playButtonContainer" position="0 0.5 -0.7">
 
-        <!-- Area klik (transparan) -->
-        <a-plane
+        <!-- AREA KLIK (pakai a-box tipis, pasti kena raycast) -->
+        <a-box
           id="clickArea"
-          width="1.0"
-          height="1.0"
+          depth="0.01"
+          width="1.2"
+          height="1.2"
           material="opacity: 0; transparent: true"
           class="clickable"
           youtube-player>
-        </a-plane>
+        </a-box>
 
-        <!-- Tombol Play (lingkaran + segitiga) -->
+        <!-- Tombol Play (visual) -->
         <a-cylinder 
           radius="0.20" 
           height="0.03" 
           color="white" 
           opacity="0.95"
-          position="0 0 0.01">
+          position="0 0 0.02">
         </a-cylinder>
         <a-triangle 
-          position="0.06 0 0.02" 
+          position="0.06 0 0.03" 
           scale="0.16 0.20 1" 
           rotation="0 0 90" 
           color="#FF0000">
         </a-triangle>
 
-        <!-- Teks kecil -->
+        <!-- Teks -->
         <a-text
           value="PLAY"
           color="white"
           align="center"
-          width="2.5"
-          position="0 -0.30 0.02"
+          width="3"
+          position="0 -0.32 0.03"
           font="mozillavr">
         </a-text>
 
@@ -71,14 +72,14 @@
 
     </a-marker>
 
-    <!-- Kamera + Cursor -->
+    <!-- KAMERA + CURSOR (raycaster fix) -->
     <a-entity camera>
       <a-entity 
         cursor="fuse: false" 
         position="0 0 -1"
         geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
         material="color: white; shader: flat"
-        raycaster="objects: .clickable">
+        raycaster="objects: .clickable; far: 1000">
       </a-entity>
     </a-entity>
 
@@ -86,15 +87,15 @@
 
   <!-- SCRIPT -->
   <script>
-    const YOUTUBE_ID = '0YbJySC88OI'; // Ganti ID video jika perlu
+    const YOUTUBE_ID = '0YbJySC88OI';
 
-    // 1. Pindahkan model + tombol ke scene (tetap di AR)
+    // 1. Pindahkan model + tombol ke scene
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
         marker.addEventListener('markerFound', () => {
           const model = document.querySelector('#arModel');
-          const btnContainer = document.querySelector('#playButtonContainer');
+          const btn = document.querySelector('#playButtonContainer');
           const scene = document.querySelector('a-scene');
           const pos = marker.object3D.position.clone();
           const rot = marker.object3D.rotation.clone();
@@ -108,14 +109,10 @@
             z: THREE.MathUtils.radToDeg(rot.z)
           });
 
-          // Pindahkan tombol (di belakang model, tetap di dalam AR)
-          scene.appendChild(btnContainer);
-          btnContainer.setAttribute('position', {
-            x: pos.x,
-            y: pos.y + 0.5,     // sama tinggi dengan model
-            z: pos.z - 0.7      // 0.7 meter di belakang model
-          });
-          btnContainer.setAttribute('rotation', {
+          // Pindahkan tombol
+          scene.appendChild(btn);
+          btn.setAttribute('position', { x: pos.x, y: pos.y + 0.5, z: pos.z - 0.7 });
+          btn.setAttribute('rotation', {
             x: THREE.MathUtils.radToDeg(rot.x),
             y: THREE.MathUtils.radToDeg(rot.y),
             z: THREE.MathUtils.radToDeg(rot.z)
@@ -126,7 +123,7 @@
       }
     });
 
-    // 2. Rotasi model dengan jari
+    // 2. Rotasi model
     AFRAME.registerComponent('rotation-control', {
       init: function () {
         const el = this.el;
@@ -159,7 +156,7 @@
       }
     });
 
-    // 3. Munculkan video YouTube di depan model saat tombol diklik
+    // 3. YouTube Player (iframe) – muncul saat tombol diklik
     AFRAME.registerComponent('youtube-player', {
       init: function () {
         const area = this.el;
@@ -173,7 +170,7 @@
           const videoPlane = document.createElement('a-plane');
           videoPlane.setAttribute('width', '2.4');
           videoPlane.setAttribute('height', '1.35');
-          videoPlane.setAttribute('position', '0 0.5 0.7'); // 0.7 m di depan model
+          videoPlane.setAttribute('position', '0 0.5 0.7');
           videoPlane.setAttribute('material', 'color', '#000');
 
           const iframe = document.createElement('iframe');
@@ -185,25 +182,21 @@
           videoPlane.setAttribute('material', 'src', iframe);
           videoPlane.setAttribute('material', 'shader', 'html');
 
-          // Tambahkan ke scene (tetap di AR)
+          // Tambahkan ke scene
           const scene = document.querySelector('a-scene');
           scene.appendChild(videoPlane);
 
-          // Pindahkan posisi video agar tetap sinkron
+          // Sinkron posisi dengan model
           const model = document.querySelector('#arModel');
           const modelPos = model.getAttribute('position');
           const modelRot = model.getAttribute('rotation');
-          videoPlane.setAttribute('position', {
-            x: modelPos.x,
-            y: modelPos.y,
-            z: modelPos.z + 0.7
-          });
+          videoPlane.setAttribute('position', { x: modelPos.x, y: modelPos.y, z: modelPos.z + 0.7 });
           videoPlane.setAttribute('rotation', modelRot);
 
-          // Hapus tombol setelah diklik
+          // Hapus tombol
           setTimeout(() => {
             document.querySelector('#playButtonContainer')?.remove();
-          }, 300);
+          }, 400);
         });
       }
     });
