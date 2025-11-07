@@ -3,15 +3,87 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube (Final – Tombol Tidak Tertindih + Console Log)</title>
+  <title>AR + YouTube (Tombol di Luar AR)</title>
   
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+    }
+
+    /* TOMBOL PLAY SEBELUM AR */
+    #startButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      background: #FF0000;
+      color: white;
+      border: none;
+      padding: 20px 40px;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 50px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.3s;
+    }
+
+    #startButton:hover {
+      background: #CC0000;
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+
+    #startButton:active {
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+
+    .play-icon {
+      width: 32px;
+      height: 32px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .play-icon::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 12px solid #FF0000;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      margin-left: 3px;
+    }
+
+    /* Sembunyikan tombol setelah diklik */
+    .hidden { display: none !important; }
+  </style>
 </head>
-<body style="margin:0; overflow:hidden; touch-action: none;">
-  
+<body>
+
+  <!-- TOMBOL PLAY (di luar AR) -->
+  <button id="startButton">
+    <div class="play-icon"></div>
+    MULAI AR & VIDEO
+  </button>
+
+  <!-- A-SCENE (awalnya tersembunyi) -->
   <a-scene 
+    id="arScene"
     embedded 
+    style="display: none;"
     arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
     renderer="logarithmicDepthBuffer: true;"
     vr-mode-ui="enabled: false">
@@ -30,59 +102,25 @@
         rotation-control>
       </a-entity>
 
-      <!-- TOMBOL PLAY (di belakang model, TIDAK TERTINDIH) -->
-      <a-entity id="playButtonContainer" position="0 0.5 -0.7">
-
-        <!-- Area klik (a-box tipis) -->
-        <a-box
-          id="clickArea"
-          depth="0.02"
-          width="1.2"
-          height="1.2"
-          material="opacity: 0; transparent: true"
-          class="clickable"
-          youtube-player>
-        </a-box>
-
-        <!-- Tombol visual -->
-        <a-cylinder 
-          radius="0.22" 
-          height="0.04" 
-          color="white" 
-          opacity="0.98"
-          position="0 0 0.02">
-        </a-cylinder>
-        <a-triangle 
-          position="0.07 0 0.03" 
-          scale="0.18 0.22 1" 
-          rotation="0 0 90" 
-          color="#FF0000">
-        </a-triangle>
-
-        <!-- Teks -->
-        <a-text
-          value="PLAY"
-          color="white"
-          align="center"
-          width="3"
-          position="0 -0.35 0.03"
-          font="mozillavr">
-        </a-text>
-
-      </a-entity>
+      <!-- VIDEO YOUTUBE (di belakang model) -->
+      <a-plane
+        id="youtubePlane"
+        width="2.4"
+        height="1.35"
+        position="0 0.5 -0.8"
+        material="color: #000"
+        visible="false">
+      </a-plane>
 
     </a-marker>
 
-    <!-- KAMERA + CURSOR (mouse & touch) -->
+    <!-- KAMERA (tanpa cursor visual) -->
     <a-entity camera>
       <a-entity 
-        cursor="fuse: false" 
+        cursor="fuse: false"
         position="0 0 -1"
-        geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-        material="color: cyan; shader: flat"
-        raycaster="objects: .clickable; far: 1000"
-        animation__mouseenter="property: scale; to: 1.5 1.5 1.5; startEvents: mouseenter; dur: 200"
-        animation__mouseleave="property: scale; to: 1 1 1; startEvents: mouseleave; dur: 200">
+        visible="false"
+        raycaster="objects: .clickable; far: 1000">
       </a-entity>
     </a-entity>
 
@@ -90,32 +128,52 @@
 
   <!-- SCRIPT -->
   <script>
-    const YOUTUBE_ID = '0YbJySC88OI'; // Ganti jika perlu
+    const YOUTUBE_ID = '0YbJySC88OI'; // Ganti ID video
 
-    // 1. Pindahkan model + tombol
+    // TOMBOL PLAY DI LUAR AR
+    document.getElementById('startButton').addEventListener('click', () => {
+      console.log('%c[TOMBOL MULAI DIKLIK! AR & VIDEO DIMULAI]', 'color: lime; font-weight: bold;');
+
+      // Sembunyikan tombol
+      document.getElementById('startButton').classList.add('hidden');
+
+      // Tampilkan AR
+      const scene = document.getElementById('arScene');
+      scene.style.display = 'block';
+
+      // Tunggu marker terdeteksi → tampilkan video
+      const marker = document.getElementById('myMarker');
+      marker.addEventListener('markerFound', () => {
+        console.log('Marker ditemukan! Memulai video...');
+
+        const videoPlane = document.getElementById('youtubePlane');
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&modestbranding=1&rel=0&mute=0`;
+        iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.style = 'width:100%; height:100%; border:none;';
+
+        videoPlane.setAttribute('material', 'src', iframe);
+        videoPlane.setAttribute('material', 'shader', 'html');
+        videoPlane.setAttribute('visible', 'true');
+
+        console.log('Video YouTube berhasil dimuat di belakang model!');
+      });
+    });
+
+    // REGISTER EVENTS (pindahkan model)
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
         marker.addEventListener('markerFound', () => {
           const model = document.querySelector('#arModel');
-          const btn = document.querySelector('#playButtonContainer');
           const scene = document.querySelector('a-scene');
           const pos = marker.object3D.position.clone();
           const rot = marker.object3D.rotation.clone();
 
-          // Pindahkan model
           scene.appendChild(model);
           model.setAttribute('position', pos);
           model.setAttribute('rotation', {
-            x: THREE.MathUtils.radToDeg(rot.x),
-            y: THREE.MathUtils.radToDeg(rot.y) + 90,
-            z: THREE.MathUtils.radToDeg(rot.z)
-          });
-
-          // Pindahkan tombol
-          scene.appendChild(btn);
-          btn.setAttribute('position', { x: pos.x, y: pos.y + 0.5, z: pos.z - 0.7 });
-          btn.setAttribute('rotation', {
             x: THREE.MathUtils.radToDeg(rot.x),
             y: THREE.MathUtils.radToDeg(rot.y) + 90,
             z: THREE.MathUtils.radToDeg(rot.z)
@@ -126,7 +184,7 @@
       }
     });
 
-    // 2. Rotasi model
+    // ROTASI MODEL
     AFRAME.registerComponent('rotation-control', {
       init: function () {
         const el = this.el;
@@ -163,66 +221,9 @@
         el.addEventListener('touchcancel', onEnd);
       }
     });
-
-    // 3. YouTube Player + CONSOLE LOG + TOMBOL TIDAK TERTINDIH
-    AFRAME.registerComponent('youtube-player', {
-      init: function () {
-        const area = this.el;
-        let loaded = false;
-
-        area.addEventListener('click', () => {
-          if (loaded) return;
-          loaded = true;
-
-          console.log('%c[TOMBOL PLAY DIKLIK!]', 'color: lime; font-weight: bold; font-size: 14px;');
-          console.log('Video YouTube ID:', YOUTUBE_ID);
-          console.log('Membuat iframe...');
-
-          // Buat layar video DI DEPAN MODEL
-          const videoPlane = document.createElement('a-plane');
-          videoPlane.setAttribute('id', 'youtubeVideoPlane');
-          videoPlane.setAttribute('width', '2.4');
-          videoPlane.setAttribute('height', '1.35');
-          videoPlane.setAttribute('position', '0 0.5 0.7');
-          videoPlane.setAttribute('material', 'color', '#000');
-
-          const iframe = document.createElement('iframe');
-          iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&modestbranding=1&rel=0`;
-          iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
-          iframe.allowFullscreen = true;
-          iframe.style = 'width:100%; height:100%; border:none;';
-
-          videoPlane.setAttribute('material', 'src', iframe);
-          videoPlane.setAttribute('material', 'shader', 'html');
-
-          // Tambahkan ke scene
-          const scene = document.querySelector('a-scene');
-          scene.appendChild(videoPlane);
-
-          // Sinkron posisi dengan model
-          const model = document.querySelector('#arModel');
-          const modelPos = model.getAttribute('position');
-          const modelRot = model.getAttribute('rotation');
-          videoPlane.setAttribute('position', { x: modelPos.x, y: modelPos.y, z: modelPos.z + 0.7 });
-          videoPlane.setAttribute('rotation', modelRot);
-
-          console.log('Iframe berhasil ditambahkan!');
-
-          // HAPUS TOMBOL SETELAH VIDEO DIMUAT
-          setTimeout(() => {
-            const btn = document.querySelector('#playButtonContainer');
-            if (btn) {
-              btn.remove();
-              console.log('Tombol PLAY dihapus (tidak tertindih video).');
-            }
-          }, 600);
-        });
-      }
-    });
   </script>
 </body>
 </html>
-
 
 <!-- 
 <!DOCTYPE html>
