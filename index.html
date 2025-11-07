@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube (Bekerja!)</title>
+  <title>AR + YouTube (Poster + Play Button Jelas)</title>
   
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -29,37 +29,56 @@
         rotation-control>
       </a-entity>
 
-      <!-- Layar Video (awalnya poster + tombol play) -->
-      <a-plane
-        id="videoPlane"
-        position="0 1.5 0"
-        width="2"
-        height="1.125"
-        material="color: black; shader: flat"
-        class="clickable"
-        youtube-player>
-        
-        <!-- Poster YouTube -->
-        <a-image 
+      <!-- LAYAR VIDEO (Poster + Tombol Play) -->
+      <a-entity id="videoContainer" position="0 1.5 0">
+
+        <!-- Plane utama (untuk iframe nanti) -->
+        <a-plane
+          id="videoPlane"
+          width="2.4"
+          height="1.35"
+          material="color: #000; shader: flat"
+          class="clickable"
+          youtube-player>
+        </a-plane>
+
+        <!-- POSTER YouTube (muncul dulu) -->
+        <a-plane
+          id="videoPoster"
           src="https://img.youtube.com/vi/0YbJySC88OI/maxresdefault.jpg"
-          width="2" height="1.125"
-          position="0 0 0.01">
-        </a-image>
+          width="2.4"
+          height="1.35"
+          position="0 0 0.01"
+          material="shader: flat">
+        </a-plane>
 
-        <!-- Tombol Play -->
-        <a-circle position="0 0 0.02" radius="0.2" color="white" opacity="0.8"></a-circle>
-        <a-triangle position="0.07 0 0.03" scale="0.15 0.2 1" rotation="0 0 90" color="red"></a-triangle>
+        <!-- TOMBOL PLAY (besar & jelas) -->
+        <a-entity id="playButton" position="0 0 0.02">
+          <a-cylinder 
+            radius="0.25" 
+            height="0.02" 
+            color="white" 
+            opacity="0.9">
+          </a-cylinder>
+          <a-triangle 
+            position="0.08 0 0.01" 
+            scale="0.2 0.25 1" 
+            rotation="0 0 90" 
+            color="#FF0000">
+          </a-triangle>
+        </a-entity>
 
-        <!-- Petunjuk -->
+        <!-- Teks petunjuk -->
         <a-text
-          value="Tap untuk play"
+          value="TAP UNTUK PLAY"
           color="white"
           align="center"
-          width="3"
-          position="0 -0.8 0"
-          rotation="0 0 0">
+          width="4"
+          position="0 -0.85 0.02"
+          font="mozillavr">
         </a-text>
-      </a-plane>
+
+      </a-entity>
 
     </a-marker>
 
@@ -78,16 +97,15 @@
 
   <!-- SCRIPT -->
   <script>
-    // Ganti ID video YouTube di sini
-    const YOUTUBE_ID = '0YbJySC88OI'; // Video kamu
+    const YOUTUBE_ID = '0YbJySC88OI'; // Ganti jika perlu
 
-    // 1. Pindahkan model + video ke scene
+    // 1. Pindahkan semua ke scene saat marker ditemukan
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
         marker.addEventListener('markerFound', () => {
           const model = document.querySelector('#arModel');
-          const videoPlane = document.querySelector('#videoPlane');
+          const container = document.querySelector('#videoContainer');
           const scene = document.querySelector('a-scene');
           const pos = marker.object3D.position.clone();
           const rot = marker.object3D.rotation.clone();
@@ -101,10 +119,10 @@
             z: THREE.MathUtils.radToDeg(rot.z)
           });
 
-          // Pindahkan video plane
-          scene.appendChild(videoPlane);
-          videoPlane.setAttribute('position', { x: pos.x, y: pos.y + 1.5, z: pos.z });
-          videoPlane.setAttribute('rotation', {
+          // Pindahkan seluruh container video
+          scene.appendChild(container);
+          container.setAttribute('position', { x: pos.x, y: pos.y + 1.5, z: pos.z });
+          container.setAttribute('rotation', {
             x: THREE.MathUtils.radToDeg(rot.x),
             y: THREE.MathUtils.radToDeg(rot.y),
             z: THREE.MathUtils.radToDeg(rot.z)
@@ -148,39 +166,34 @@
       }
     });
 
-    // 3. YouTube Player dengan iframe (PASTI JALAN)
+    // 3. YouTube Player (iframe)
     AFRAME.registerComponent('youtube-player', {
       init: function () {
         const plane = this.el;
-        let iframe = null;
+        let played = false;
 
         plane.addEventListener('click', () => {
-          if (iframe) return; // Sudah dimuat
+          if (played) return;
+          played = true;
 
-          // Buat iframe YouTube
-          iframe = document.createElement('iframe');
-          iframe.width = '560';
-          iframe.height = '315';
+          const iframe = document.createElement('iframe');
           iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&modestbranding=1&rel=0`;
-          iframe.frameBorder = '0';
-          iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+          iframe.allow = 'autoplay; encrypted-media';
           iframe.allowFullscreen = true;
-          iframe.style.position = 'absolute';
           iframe.style.width = '100%';
           iframe.style.height = '100%';
           iframe.style.border = 'none';
 
-          // Ganti material plane jadi HTML
+          // Ganti plane jadi HTML
           plane.setAttribute('material', 'src', iframe);
           plane.setAttribute('material', 'shader', 'html');
 
           // Hapus poster & tombol
           setTimeout(() => {
-            plane.querySelector('a-image')?.remove();
-            plane.querySelector('a-circle')?.remove();
-            plane.querySelector('a-triangle')?.remove();
-            plane.querySelector('a-text')?.remove();
-          }, 500);
+            document.querySelector('#videoPoster')?.remove();
+            document.querySelector('#playButton')?.remove();
+            document.querySelector('a-text')?.remove();
+          }, 300);
         });
       }
     });
