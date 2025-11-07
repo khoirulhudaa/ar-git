@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube (PASTI MUNCUL)</title>
+  <title>AR + YouTube (TOMBOL PASTI DIKLIK)</title>
   
-  <!-- A-Frame + AR.js -->
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
@@ -15,7 +14,6 @@
 </head>
 <body>
 
-  <!-- A-SCENE -->
   <a-scene
     embedded
     arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
@@ -36,24 +34,23 @@
         rotation-control>
       </a-entity>
 
-      <!-- TOMBOL PLAY (di AR, depan model) -->
+      <!-- TOMBOL PLAY (PASTI KLIK) -->
       <a-entity id="playButton" position="0 0.5 0.8">
-        <a-box
-          depth="0.02"
-          width="1.2"
-          height="1.2"
+        <!-- Area klik (tipis, pasti kena) -->
+        <a-entity
+          geometry="primitive: box; depth: 0.05; width: 1.2; height: 1.2"
           material="opacity: 0; transparent: true"
           class="clickable"
           youtube-player>
-        </a-box>
+        </a-entity>
 
-        <!-- Visual Tombol -->
-        <a-cylinder radius="0.22" height="0.04" color="white" opacity="0.95" position="0 0 0.02"></a-cylinder>
-        <a-triangle position="0.07 0 0.03" scale="0.18 0.22 1" rotation="0 0 90" color="#FF0000"></a-triangle>
-        <a-text value="PLAY" color="white" align="center" width="3" position="0 -0.35 0.03" font="mozillavr"></a-text>
+        <!-- Visual tombol -->
+        <a-cylinder radius="0.22" height="0.04" color="white" position="0 0 0.03"></a-cylinder>
+        <a-triangle position="0.07 0 0.04" scale="0.18 0.22 1" rotation="0 0 90" color="#FF0000"></a-triangle>
+        <a-text value="PLAY" color="white" align="center" width="3" position="0 -0.35 0.04" font="mozillavr"></a-text>
       </a-entity>
 
-      <!-- VIDEO YOUTUBE (lebar, depan model) -->
+      <!-- VIDEO (lebar, depan) -->
       <a-plane
         id="videoPlane"
         width="2.4"
@@ -65,10 +62,10 @@
 
     </a-marker>
 
-    <!-- KAMERA + CURSOR -->
+    <!-- KAMERA + CURSOR (WAJIB) -->
     <a-entity camera>
       <a-entity
-        cursor="fuse: false"
+        cursor
         position="0 0 -1"
         geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
         material="color: cyan; shader: flat"
@@ -82,23 +79,21 @@
   <script>
     const YOUTUBE_ID = '0YbJySC88OI';
 
-    // Pindahkan model + tombol + video
+    // PINDAHKAN SEMUA KE SCENE
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
         marker.addEventListener('markerFound', () => {
-          console.log('Marker ditemukan!');
-          const model = document.querySelector('#arModel');
-          const btn = document.querySelector('#playButton');
-          const video = document.querySelector('#videoPlane');
+          console.log('%c[MARKER] Ditemukan!', 'color: yellow; font-weight: bold;');
+          
           const scene = document.querySelector('a-scene');
           const pos = marker.object3D.position.clone();
           const rot = marker.object3D.rotation.clone();
 
-          // Pindahkan semua
-          [model, btn, video].forEach(el => {
+          ['#arModel', '#playButton', '#videoPlane'].forEach(selector => {
+            const el = document.querySelector(selector);
             scene.appendChild(el);
-            el.setAttribute('position', { x: pos.x, y: pos.y + 0.5, z: pos.z + (el.id === 'videoPlane' ? 0.8 : 0.8) });
+            el.setAttribute('position', { x: pos.x, y: pos.y + 0.5, z: pos.z + (selector === '#videoPlane' ? 0.8 : 0.8) });
             el.setAttribute('rotation', {
               x: THREE.MathUtils.radToDeg(rot.x),
               y: THREE.MathUtils.radToDeg(rot.y) + 90,
@@ -111,11 +106,14 @@
       }
     });
 
-    // KLIK TOMBOL → VIDEO MUNCUL
+    // TOMBOL PLAY (PASTI KLIK!)
     AFRAME.registerComponent('youtube-player', {
       init: function () {
-        this.el.addEventListener('click', () => {
-          console.log('%c[TOMBOL PLAY DIKLIK!]', 'color: lime; font-weight: bold;');
+        const el = this.el;
+
+        // PAKAI MOUSEDOWN + TOUCHSTART → PASTI TERDETEKSI
+        const playVideo = () => {
+          console.log('%c[TOMBOL] DIKLIK! Memuat video...', 'color: lime; font-weight: bold;');
 
           const videoPlane = document.querySelector('#videoPlane');
           const iframe = document.createElement('iframe');
@@ -125,7 +123,6 @@
           iframe.allowFullscreen = true;
           iframe.style = 'width:100%; height:100%; border:none;';
 
-          // PAKAI SHADER HTML
           videoPlane.setAttribute('material', 'src', iframe);
           videoPlane.setAttribute('material', 'shader', 'html');
           videoPlane.setAttribute('visible', 'true');
@@ -133,7 +130,14 @@
           // Hapus tombol
           document.querySelector('#playButton').remove();
 
-          console.log('Video berhasil dimuat di AR!');
+          console.log('%c[VIDEO] Berhasil dimuat di AR!', 'color: cyan; font-weight: bold;');
+        };
+
+        // EVENT: MOUSE + TOUCH
+        el.addEventListener('mousedown', playVideo);
+        el.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          playVideo();
         });
       }
     });
