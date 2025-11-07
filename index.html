@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube (Final – Semua Berfungsi)</title>
+  <title>AR + YouTube (Final – Tombol Tidak Tertindih + Console Log)</title>
   
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -19,7 +19,7 @@
     <!-- MARKER -->
     <a-marker id="myMarker" type="pattern" url="./assets/profile.patt" registerevents>
 
-      <!-- Model 3D (awal rotasi +90° Y) -->
+      <!-- Model 3D -->
       <a-entity 
         id="arModel"
         gltf-model="./assets/box-sample.glb" 
@@ -30,10 +30,10 @@
         rotation-control>
       </a-entity>
 
-      <!-- TOMBOL PLAY (di belakang model) -->
+      <!-- TOMBOL PLAY (di belakang model, TIDAK TERTINDIH) -->
       <a-entity id="playButtonContainer" position="0 0.5 -0.7">
 
-        <!-- Area klik (a-box tipis – pasti kena raycast) -->
+        <!-- Area klik (a-box tipis) -->
         <a-box
           id="clickArea"
           depth="0.02"
@@ -73,14 +73,16 @@
 
     </a-marker>
 
-    <!-- KAMERA + CURSOR (jangkau jauh) -->
+    <!-- KAMERA + CURSOR (mouse & touch) -->
     <a-entity camera>
       <a-entity 
         cursor="fuse: false" 
         position="0 0 -1"
         geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-        material="color: white; shader: flat"
-        raycaster="objects: .clickable; far: 1000">
+        material="color: cyan; shader: flat"
+        raycaster="objects: .clickable; far: 1000"
+        animation__mouseenter="property: scale; to: 1.5 1.5 1.5; startEvents: mouseenter; dur: 200"
+        animation__mouseleave="property: scale; to: 1 1 1; startEvents: mouseleave; dur: 200">
       </a-entity>
     </a-entity>
 
@@ -88,9 +90,9 @@
 
   <!-- SCRIPT -->
   <script>
-    const YOUTUBE_ID = '0YbJySC88OI'; // Ganti dengan ID video kamu
+    const YOUTUBE_ID = '0YbJySC88OI'; // Ganti jika perlu
 
-    // 1. Pindahkan model + tombol ke scene
+    // 1. Pindahkan model + tombol
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
@@ -106,7 +108,7 @@
           model.setAttribute('position', pos);
           model.setAttribute('rotation', {
             x: THREE.MathUtils.radToDeg(rot.x),
-            y: THREE.MathUtils.radToDeg(rot.y) + 90, // +90° dari marker
+            y: THREE.MathUtils.radToDeg(rot.y) + 90,
             z: THREE.MathUtils.radToDeg(rot.z)
           });
 
@@ -124,7 +126,7 @@
       }
     });
 
-    // 2. Rotasi model (halus)
+    // 2. Rotasi model
     AFRAME.registerComponent('rotation-control', {
       init: function () {
         const el = this.el;
@@ -162,7 +164,7 @@
       }
     });
 
-    // 3. YouTube Player – IFRAME BENAR + AUTOPLAY + LOOP
+    // 3. YouTube Player + CONSOLE LOG + TOMBOL TIDAK TERTINDIH
     AFRAME.registerComponent('youtube-player', {
       init: function () {
         const area = this.el;
@@ -172,8 +174,13 @@
           if (loaded) return;
           loaded = true;
 
-          // Buat layar video
+          console.log('%c[TOMBOL PLAY DIKLIK!]', 'color: lime; font-weight: bold; font-size: 14px;');
+          console.log('Video YouTube ID:', YOUTUBE_ID);
+          console.log('Membuat iframe...');
+
+          // Buat layar video DI DEPAN MODEL
           const videoPlane = document.createElement('a-plane');
+          videoPlane.setAttribute('id', 'youtubeVideoPlane');
           videoPlane.setAttribute('width', '2.4');
           videoPlane.setAttribute('height', '1.35');
           videoPlane.setAttribute('position', '0 0.5 0.7');
@@ -192,17 +199,23 @@
           const scene = document.querySelector('a-scene');
           scene.appendChild(videoPlane);
 
-          // Sinkron posisi & rotasi dengan model
+          // Sinkron posisi dengan model
           const model = document.querySelector('#arModel');
           const modelPos = model.getAttribute('position');
           const modelRot = model.getAttribute('rotation');
           videoPlane.setAttribute('position', { x: modelPos.x, y: modelPos.y, z: modelPos.z + 0.7 });
           videoPlane.setAttribute('rotation', modelRot);
 
-          // Hapus tombol
+          console.log('Iframe berhasil ditambahkan!');
+
+          // HAPUS TOMBOL SETELAH VIDEO DIMUAT
           setTimeout(() => {
-            document.querySelector('#playButtonContainer')?.remove();
-          }, 500);
+            const btn = document.querySelector('#playButtonContainer');
+            if (btn) {
+              btn.remove();
+              console.log('Tombol PLAY dihapus (tidak tertindih video).');
+            }
+          }, 600);
         });
       }
     });
