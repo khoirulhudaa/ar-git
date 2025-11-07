@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR dengan Teks Tetap</title>
+  <title>AR + YouTube Video Autoplay</title>
   
   <!-- A-Frame & AR.js -->
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
@@ -13,7 +13,7 @@
   
   <a-scene 
     embedded 
-    arjs="trackingMethod: best; sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    arjs="trackingMethod: best; sourceType: webcam;"
     renderer="logarithmicDepthBuffer: true;"
     vr-mode-ui="enabled: false">
 
@@ -30,35 +30,54 @@
         rotation-control>
       </a-entity>
 
-      <!-- Teks di atas model -->
-      <a-text
-        id="arText"
-        value="https://youtube.com/testing"
-        color="white"
-        align="center"
-        width="6"
-        position="0 1.2 0"
-        rotation="0 0 0"
-        side="double"
-        wrap-count="40"
-        font="mozillavr">
-      </a-text>
+      <!-- Video YouTube di AR (Autoplay) -->
+      <a-plane
+        id="videoPlane"
+        src="#youtubeVideo"
+        position="0 1.5 0"
+        width="2"
+        height="1.125"
+        material="shader: flat"
+        class="clickable"
+        video-control>
+      </a-plane>
 
     </a-marker>
 
-    <!-- Kamera -->
-    <a-entity camera></a-entity>
+    <!-- Kamera + Cursor -->
+    <a-entity camera>
+      <a-entity cursor="fuse: false"
+                position="0 0 -1"
+                geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                material="color: white; shader: flat"
+                raycaster="objects: .clickable">
+      </a-entity>
+    </a-entity>
+
+    <!-- Asset: Video YouTube -->
+    <a-assets timeout="10000">
+      <video
+        id="youtubeVideo"
+        src="https://www.youtube.com/embed/0YbJySC88OI?si=gYKVjSTcalHCcCjI"
+        webkit-playsinline
+        playsinline
+        crossorigin="anonymous"
+        preload="auto">
+      </video>
+    </a-assets>
+
   </a-scene>
 
-  <!-- SCRIPT: AR Tetap + Rotasi Jari + Pindah Teks -->
+  <!-- SCRIPT: AR Tetap + Video Autoplay + Kontrol -->
   <script>
-    // 1. Pindahkan model + teks ke scene saat marker ditemukan
+    // 1. Pindahkan model + video ke scene saat marker ditemukan
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
         marker.addEventListener('markerFound', () => {
           const model = document.querySelector('#arModel');
-          const text = document.querySelector('#arText');
+          const videoPlane = document.querySelector('#videoPlane');
+          const video = document.querySelector('#youtubeVideo');
           const scene = document.querySelector('a-scene');
           const pos = marker.object3D.position.clone();
           const rot = marker.object3D.rotation.clone();
@@ -72,34 +91,36 @@
             z: THREE.MathUtils.radToDeg(rot.z)
           });
 
-          // Pindahkan teks
-          if (text) {
-            scene.appendChild(text);
-            text.setAttribute('position', { 
-              x: pos.x, 
-              y: pos.y + 1.2, 
-              z: pos.z 
-            });
-            text.setAttribute('rotation', {
+          // Pindahkan video plane
+          if (videoPlane) {
+            scene.appendChild(videoPlane);
+            videoPlane.setAttribute('position', { x: pos.x, y: pos.y + 1.5, z: pos.z });
+            videoPlane.setAttribute('rotation', {
               x: THREE.MathUtils.radToDeg(rot.x),
               y: THREE.MathUtils.radToDeg(rot.y),
               z: THREE.MathUtils.radToDeg(rot.z)
             });
+
+            // Autoplay video
+            setTimeout(() => {
+              if (video) {
+                video.play().catch(() => {
+                  console.log("Autoplay dicegah, user harus interaksi dulu");
+                });
+              }
+            }, 500);
           }
 
-          // Sembunyikan marker
           marker.setAttribute('visible', false);
         });
       }
     });
 
-    // 2. Rotasi dengan jari (touch & drag)
+    // 2. Rotasi model dengan jari
     AFRAME.registerComponent('rotation-control', {
       init: function () {
         const el = this.el;
-        let startX = 0;
-        let startY = 0;
-        let isDragging = false;
+        let startX = 0, startY = 0, isDragging = false;
 
         const onStart = (e) => {
           if (e.touches && e.touches.length === 1) {
@@ -112,29 +133,38 @@
         const onMove = (e) => {
           if (!isDragging || !e.touches || e.touches.length !== 1) return;
           e.preventDefault();
-
           const deltaX = e.touches[0].clientX - startX;
           const deltaY = e.touches[0].clientY - startY;
-
-          const rotation = el.getAttribute('rotation');
+          const rot = el.getAttribute('rotation');
           el.setAttribute('rotation', {
-            x: rotation.x - deltaY * 0.5,
-            y: rotation.y + deltaX * 0.5,
-            z: rotation.z
+            x: rot.x - deltaY * 0.5,
+            y: rot.y + deltaX * 0.5,
+            z: rot.z
           });
-
           startX = e.touches[0].clientX;
           startY = e.touches[0].clientY;
         };
 
-        const onEnd = () => {
-          isDragging = false;
-        };
+        const onEnd = () => { isDragging = false; };
 
         el.addEventListener('touchstart', onStart);
         el.addEventListener('touchmove', onMove, { passive: false });
         el.addEventListener('touchend', onEnd);
         el.addEventListener('touchcancel', onEnd);
+      }
+    });
+
+    // 3. Kontrol video saat di-tap (play/pause)
+    AFRAME.registerComponent('video-control', {
+      init: function () {
+        const video = document.querySelector('#youtubeVideo');
+        this.el.addEventListener('click', () => {
+          if (video.paused) {
+            video.play();
+          } else {
+            video.pause();
+          }
+        });
       }
     });
   </script>
