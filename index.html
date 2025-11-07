@@ -44,7 +44,7 @@
     vr-mode-ui="enabled: false">
 
     <!-- MARKER -->
-    <a-marker type="pattern" url="./assets/profile.patt" registerevents>
+    <a-marker type="pattern" url="./assets/profile.patt" registerevents emitevents="true">
 
       <!-- MODEL 3D -->
       <a-entity
@@ -58,7 +58,7 @@
       </a-entity>
 
       <!-- TOMBOL PLAY DENGAN TEKS "PLAY VIDEO" -->
-      <a-entity id="playButton" position="0 0.5 0.8">
+      <a-entity id="playButton" position="0 0.5 0.8" look-at="[camera]">
         <!-- AREA KLIK -->
         <a-box
           depth="0.05"
@@ -102,7 +102,7 @@
         position="0 0 -1"
         geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
         material="color: cyan; shader: flat"
-        raycaster="objects: .clickable; far: 1000">
+        raycaster="objects: .clickable; near: 0.1; far: 5; autoRefresh: true">
       </a-entity>
     </a-entity>
 
@@ -112,29 +112,24 @@
   <script>
     const YOUTUBE_ID = '0YbJySC88OI';
 
-    // PINDAHKAN MODEL + TOMBOL
+    // PINDAHKAN MODEL + TOMBOL (TIDAK LAGI DIPINDAH KE SCENE - TETAP DI DALAM MARKER)
     AFRAME.registerComponent('registerevents', {
       init: function () {
         const marker = this.el;
         marker.addEventListener('markerFound', () => {
           console.log('%c[MARKER] Ditemukan!', 'color: yellow; font-weight: bold;');
-          
-          const scene = document.querySelector('a-scene');
-          const pos = marker.object3D.position.clone();
-          const rot = marker.object3D.rotation.clone();
-
-          ['#arModel', '#playButton'].forEach(sel => {
-            const el = document.querySelector(sel);
-            scene.appendChild(el);
-            el.setAttribute('position', { x: pos.x, y: pos.y + 0.5, z: pos.z + 0.8 });
-            el.setAttribute('rotation', {
-              x: THREE.MathUtils.radToDeg(rot.x),
-              y: THREE.MathUtils.radToDeg(rot.y) + 90,
-              z: THREE.MathUtils.radToDeg(rot.z)
-            });
-          });
-
+          // Hanya sembunyikan marker, biarkan anak tetap terlihat di posisi marker
           marker.setAttribute('visible', false);
+          // Refresh raycaster manual untuk pastikan deteksi setelah event
+          const cursor = document.querySelector('a-scene').querySelector('.cursor');
+          if (cursor) {
+            cursor.components.raycaster.refreshObjects();
+          }
+        });
+        // Handle markerLost jika perlu (opsional)
+        marker.addEventListener('markerLost', () => {
+          console.log('%c[MARKER] Hilang!', 'color: red; font-weight: bold;');
+          marker.setAttribute('visible', true); // Tampilkan lagi jika hilang
         });
       }
     });
@@ -153,7 +148,8 @@
           iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&modestbranding=1&rel=0`;
           container.style.display = 'block';
 
-          document.querySelector('#playButton').remove();
+          // Hapus tombol setelah klik
+          document.querySelector('#playButton').setAttribute('visible', false);
 
           console.log('%c[VIDEO] Berhasil dimuat!', 'color: cyan; font-weight: bold;');
         };
@@ -161,39 +157,61 @@
         el.addEventListener('mousedown', playVideo);
         el.addEventListener('touchstart', (e) => {
           e.preventDefault();
+          e.stopPropagation();
           playVideo();
+        });
+        // Tambah raycaster-intersected untuk konfirmasi (opsional, untuk debug)
+        el.addEventListener('raycaster-intersection', () => {
+          console.log('%c[RAYCASTER] Tombol terdeteksi!', 'color: orange;');
         });
       }
     });
 
-    // ROTASI MODEL
+    // ROTASI MODEL (DIPERBAIKI UNTUK MOBILE + MOUSE)
     AFRAME.registerComponent('rotation-control', {
       init: function () {
         const el = this.el;
         let startX = 0, startY = 0, isDragging = false;
+        const rotationSpeed = 0.6;
+        const minPitch = -90; // Batasi rotasi X
+        const maxPitch = 90;
+
         const onStart = (e) => {
-          if (e.touches?.length === 1) {
+          if (e.type === 'mousedown' || e.touches?.length === 1) {
             isDragging = true;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
+            startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+            startY = e.type === 'mousedown' ? e.clientY : e.touches[0].clientY;
           }
         };
+
         const onMove = (e) => {
-          if (!isDragging || !e.touches) return;
+          if (!isDragging) return;
           e.preventDefault();
-          const deltaX = e.touches[0].clientX - startX;
-          const deltaY = e.touches[0].clientY - startY;
+          const clientX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+          const clientY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
+          const deltaX = clientX - startX;
+          const deltaY = clientY - startY;
           const rot = el.getAttribute('rotation');
+          let newX = rot.x - deltaY * rotationSpeed;
+          newX = Math.max(minPitch, Math.min(maxPitch, newX)); // Batasi pitch
           el.setAttribute('rotation', {
-            x: rot.x - deltaY * 0.6,
-            y: rot.y + deltaX * 0.6,
+            x: newX,
+            y: rot.y + deltaX * rotationSpeed,
             z: rot.z
           });
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
+          startX = clientX;
+          startY = clientY;
         };
+
         const onEnd = () => { isDragging = false; };
-        el.addEventListener('touchstart', onStart);
+
+        // Mouse events (untuk desktop)
+        el.addEventListener('mousedown', onStart);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+
+        // Touch events (mobile)
+        el.addEventListener('touchstart', onStart, { passive: false });
         el.addEventListener('touchmove', onMove, { passive: false });
         el.addEventListener('touchend', onEnd);
       }
@@ -201,7 +219,6 @@
   </script>
 </body>
 </html>
-
 
 <!-- 
 <!DOCTYPE html>
