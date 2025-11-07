@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR + YouTube (Tombol BISA DIKLIK)</title>
+  <title>AR + YouTube (Final – Semua Berfungsi)</title>
   
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -19,12 +19,13 @@
     <!-- MARKER -->
     <a-marker id="myMarker" type="pattern" url="./assets/profile.patt" registerevents>
 
-      <!-- Model 3D -->
+      <!-- Model 3D (awal rotasi +90° Y) -->
       <a-entity 
         id="arModel"
         gltf-model="./assets/box-sample.glb" 
         scale="0.5 0.5 0.5"
         position="0 0.5 0"
+        rotation="0 90 0"
         animation-mixer
         rotation-control>
       </a-entity>
@@ -32,10 +33,10 @@
       <!-- TOMBOL PLAY (di belakang model) -->
       <a-entity id="playButtonContainer" position="0 0.5 -0.7">
 
-        <!-- AREA KLIK (pakai a-box tipis, pasti kena raycast) -->
+        <!-- Area klik (a-box tipis – pasti kena raycast) -->
         <a-box
           id="clickArea"
-          depth="0.01"
+          depth="0.02"
           width="1.2"
           height="1.2"
           material="opacity: 0; transparent: true"
@@ -43,17 +44,17 @@
           youtube-player>
         </a-box>
 
-        <!-- Tombol Play (visual) -->
+        <!-- Tombol visual -->
         <a-cylinder 
-          radius="0.20" 
-          height="0.03" 
+          radius="0.22" 
+          height="0.04" 
           color="white" 
-          opacity="0.95"
+          opacity="0.98"
           position="0 0 0.02">
         </a-cylinder>
         <a-triangle 
-          position="0.06 0 0.03" 
-          scale="0.16 0.20 1" 
+          position="0.07 0 0.03" 
+          scale="0.18 0.22 1" 
           rotation="0 0 90" 
           color="#FF0000">
         </a-triangle>
@@ -64,7 +65,7 @@
           color="white"
           align="center"
           width="3"
-          position="0 -0.32 0.03"
+          position="0 -0.35 0.03"
           font="mozillavr">
         </a-text>
 
@@ -72,7 +73,7 @@
 
     </a-marker>
 
-    <!-- KAMERA + CURSOR (raycaster fix) -->
+    <!-- KAMERA + CURSOR (jangkau jauh) -->
     <a-entity camera>
       <a-entity 
         cursor="fuse: false" 
@@ -87,7 +88,7 @@
 
   <!-- SCRIPT -->
   <script>
-    const YOUTUBE_ID = '0YbJySC88OI';
+    const YOUTUBE_ID = '0YbJySC88OI'; // Ganti dengan ID video kamu
 
     // 1. Pindahkan model + tombol ke scene
     AFRAME.registerComponent('registerevents', {
@@ -105,7 +106,7 @@
           model.setAttribute('position', pos);
           model.setAttribute('rotation', {
             x: THREE.MathUtils.radToDeg(rot.x),
-            y: THREE.MathUtils.radToDeg(rot.y),
+            y: THREE.MathUtils.radToDeg(rot.y) + 90, // +90° dari marker
             z: THREE.MathUtils.radToDeg(rot.z)
           });
 
@@ -114,7 +115,7 @@
           btn.setAttribute('position', { x: pos.x, y: pos.y + 0.5, z: pos.z - 0.7 });
           btn.setAttribute('rotation', {
             x: THREE.MathUtils.radToDeg(rot.x),
-            y: THREE.MathUtils.radToDeg(rot.y),
+            y: THREE.MathUtils.radToDeg(rot.y) + 90,
             z: THREE.MathUtils.radToDeg(rot.z)
           });
 
@@ -123,11 +124,12 @@
       }
     });
 
-    // 2. Rotasi model
+    // 2. Rotasi model (halus)
     AFRAME.registerComponent('rotation-control', {
       init: function () {
         const el = this.el;
         let startX = 0, startY = 0, isDragging = false;
+
         const onStart = (e) => {
           if (e.touches && e.touches.length === 1) {
             isDragging = true;
@@ -135,6 +137,7 @@
             startY = e.touches[0].clientY;
           }
         };
+
         const onMove = (e) => {
           if (!isDragging || !e.touches || e.touches.length !== 1) return;
           e.preventDefault();
@@ -142,21 +145,24 @@
           const deltaY = e.touches[0].clientY - startY;
           const rot = el.getAttribute('rotation');
           el.setAttribute('rotation', {
-            x: rot.x - deltaY * 0.5,
-            y: rot.y + deltaX * 0.5,
+            x: rot.x - deltaY * 0.6,
+            y: rot.y + deltaX * 0.6,
             z: rot.z
           });
           startX = e.touches[0].clientX;
           startY = e.touches[0].clientY;
         };
+
         const onEnd = () => { isDragging = false; };
+
         el.addEventListener('touchstart', onStart);
         el.addEventListener('touchmove', onMove, { passive: false });
         el.addEventListener('touchend', onEnd);
+        el.addEventListener('touchcancel', onEnd);
       }
     });
 
-    // 3. YouTube Player (iframe) – muncul saat tombol diklik
+    // 3. YouTube Player – IFRAME BENAR + AUTOPLAY + LOOP
     AFRAME.registerComponent('youtube-player', {
       init: function () {
         const area = this.el;
@@ -166,7 +172,7 @@
           if (loaded) return;
           loaded = true;
 
-          // Buat layar video di depan model
+          // Buat layar video
           const videoPlane = document.createElement('a-plane');
           videoPlane.setAttribute('width', '2.4');
           videoPlane.setAttribute('height', '1.35');
@@ -174,8 +180,8 @@
           videoPlane.setAttribute('material', 'color', '#000');
 
           const iframe = document.createElement('iframe');
-          iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&rel=0&modestbranding=1`;
-          iframe.allow = 'autoplay; encrypted-media';
+          iframe.src = `https://www.youtube.com/embed/${YOUTUBE_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_ID}&controls=1&modestbranding=1&rel=0`;
+          iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
           iframe.allowFullscreen = true;
           iframe.style = 'width:100%; height:100%; border:none;';
 
@@ -186,7 +192,7 @@
           const scene = document.querySelector('a-scene');
           scene.appendChild(videoPlane);
 
-          // Sinkron posisi dengan model
+          // Sinkron posisi & rotasi dengan model
           const model = document.querySelector('#arModel');
           const modelPos = model.getAttribute('position');
           const modelRot = model.getAttribute('rotation');
@@ -196,7 +202,7 @@
           // Hapus tombol
           setTimeout(() => {
             document.querySelector('#playButtonContainer')?.remove();
-          }, 400);
+          }, 500);
         });
       }
     });
